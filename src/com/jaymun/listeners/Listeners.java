@@ -3,6 +3,7 @@ package com.jaymun.listeners;
 import java.util.Collection;
 import java.util.Random;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -30,73 +31,104 @@ public class Listeners implements Listener{
 		System.out.println("Players: " + TagMiniGamePlugin.players_size);
 		World world = event.getPlayer().getWorld();
 		if(TagMiniGamePlugin.players_size == 2) {
-			startGame(world);
+			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(world), 200);
 		}
 	}
 	//Check if the hunter tagged the hunted and end the game
 	@EventHandler
     public void onHit(EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
-            Player whoHit = (Player) event.getDamager();
-            for (int i=0; i<pt.length; i++) {
-            	System.out.println("True or False : " + pt[i].getPlayer().getName().equals(whoHit.getName()) + " && " + pt[i].getType().equals("Hunter"));
-            	if (pt[i].getPlayer().getName().equals(whoHit.getName()) && pt[i].getType().equals("Hunter")) {
-            		//Kerdise ton gyro
-            		switch (i) {
-						case 0:
-		            		pt[0].setType("Hunted");
-		            		pt[1].setType("Hunter");
-							setP1_rounds(getP1_rounds() + 1);
-							break;
-						case 1:
-							pt[1].setType("Hunted");
-		            		pt[0].setType("Hunter");
-							setP2_rounds(getP2_rounds() + 1);
-						default:
-							break;
-					}
-            		if (getP1_rounds() < 7 && getP2_rounds() < 7) {
-            			startGame(whoHit.getWorld());
-            		}
-            	}
-            }
-        }
+		if(game_started) {
+	        if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
+	            Player whoHit = (Player) event.getDamager();
+	            for (int i=0; i<pt.length; i++) {
+	            	System.out.println("True or False : " + pt[i].getPlayer().getName().equals(whoHit.getName()) + " && " + pt[i].getType().equals("Hunter"));
+	            	if (pt[i].getPlayer().getName().equals(whoHit.getName()) && pt[i].getType().equals("Hunter")) {
+	            		//Won the round
+	            		switch (i) {
+							case 0:
+			            		pt[0].setType("Hunted");
+			            		pt[1].setType("Hunter");
+								setP1_rounds(getP1_rounds() + 1);
+								break;
+							case 1:
+								pt[1].setType("Hunted");
+			            		pt[0].setType("Hunter");
+								setP2_rounds(getP2_rounds() + 1);
+							default:
+								break;
+						}
+	            		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
+						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
+	            			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(whoHit.getWorld()), 200);
+	            		}
+	            		else {
+	            			Bukkit.getScheduler().runTaskLater(plugin, ()->{
+								Location spawn = whoHit.getWorld().getSpawnLocation();
+		            			// TODO show the winner
+		            			for (int p =0; p<pt.length; p++) {
+		            				pt[p].getPlayer().teleport(spawn);
+		            			}
+		            			pt = null;
+		            			setGame_started(false);
+							}, 200);	   
+	            			
+	            		}
+	            	}
+	            }
+	        }
+		}
     }
 	//Check who died to give the round to his opponent
 	@EventHandler
 	public void onDeath(PlayerDeathEvent event) {
-		if (event.getEntity() instanceof Player) {
-			Player killed = event.getEntity();
-			for (int i=0; i<pt.length; i++) {
-				if (pt[i].getPlayer().getName().equals(killed.getName())) {
-					switch (i) {
-						case 0:
-							if (pt[0].getType().equals("Hunter")) {
-								pt[0].setType("Hunted");
-								pt[1].setType("Hunter");
-							}
-							else {
-								pt[0].setType("Hunter");
-								pt[1].setType("Hunted");
-							}
-							setP2_rounds(getP2_rounds() + 1);
-							break;
-						case 1:
-							if (pt[1].getType().equals("Hunter")) {
-								pt[0].setType("Hunter");
-								pt[1].setType("Hunted");
-							}
-							else {
-								pt[0].setType("Hunted");
-								pt[1].setType("Hunter");
-							}
-							setP1_rounds(getP1_rounds() + 1);
-						default:
-							break;
+		if(game_started) {
+			if (event.getEntity() instanceof Player) {
+				Player killed = event.getEntity();
+				for (int i=0; i<pt.length; i++) {
+					if (pt[i].getPlayer().getName().equals(killed.getName())) {
+						switch (i) {
+							case 0:
+								if (pt[0].getType().equals("Hunter")) {
+									pt[0].setType("Hunted");
+									pt[1].setType("Hunter");
+								}
+								else {
+									pt[0].setType("Hunter");
+									pt[1].setType("Hunted");
+								}
+								setP2_rounds(getP2_rounds() + 1);
+								break;
+							case 1:
+								if (pt[1].getType().equals("Hunter")) {
+									pt[0].setType("Hunter");
+									pt[1].setType("Hunted");
+								}
+								else {
+									pt[0].setType("Hunted");
+									pt[1].setType("Hunter");
+								}
+								setP1_rounds(getP1_rounds() + 1);
+							default:
+								break;
+						}
+		        		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
+						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
+		        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(killed.getWorld()), 200);
+		        		}
+						else {
+							Bukkit.getScheduler().runTaskLater(plugin, ()->{
+								Location spawn = killed.getWorld().getSpawnLocation();
+		            			// TODO show the winner
+		            			for (int p =0; p<pt.length; p++) {
+		            				pt[p].getPlayer().teleport(spawn);
+		            			}
+		            			pt = null;
+		            			setGame_started(false);
+							}, 200);	            			
+	            		}
 					}
-	        		if (getP1_rounds() < 7 && getP2_rounds() < 7) {
-	        			startGame(killed.getWorld());
-	        		}
 				}
 			}
 		}
@@ -106,11 +138,26 @@ public class Listeners implements Listener{
 		Collection<? extends Player> players = plugin.getServer().getOnlinePlayers();
 		System.out.println("Players: " + TagMiniGamePlugin.players_size);
 		int x = getRandom(-10000, 10000);
-		int y = getRandom(60, 70);
 		int z = getRandom(-10000, 10000);
+		int y = getRandom(80, 90);
 		Location l = new Location(world, x, y, z);
+		world.getChunkAt(l).load();
 		for (Player player : players) {
-			player.teleport(l);
+			int height = y;
+			while(true) {
+				if (world.getBlockAt(new Location(world, x, height, z)).getType().isAir()) {
+					if (!world.getBlockAt(new Location(world, x, (height-1), z)).getType().isAir()) {
+						player.teleport(l);	
+						break;
+					}
+					else {
+						height--;
+					}
+				}
+				else {
+					height++;
+				}
+			}
 			player.getInventory().clear();
 			player.getInventory().addItem(new ItemStack(Material.DIAMOND_AXE));
 			player.getInventory().addItem(new ItemStack(Material.DIAMOND_SHOVEL));
