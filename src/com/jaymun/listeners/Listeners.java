@@ -7,6 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -22,6 +23,7 @@ import com.jaymun.players.PlayerType;
 public class Listeners implements Listener{
 	private Plugin plugin = TagMiniGamePlugin.getPlugin(TagMiniGamePlugin.class);
 	private boolean game_started = false;
+	private boolean round_started = false; 
 	private PlayerType pt[] = new PlayerType[2];
 	private int p1_rounds = 0, p2_rounds = 0;
 	
@@ -37,13 +39,14 @@ public class Listeners implements Listener{
 	//Check if the hunter tagged the hunted and end the game
 	@EventHandler
     public void onHit(EntityDamageByEntityEvent event) {
-		if(game_started) {
+		if(isGame_started() && isRound_started()) {
 	        if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
 	            Player whoHit = (Player) event.getDamager();
 	            for (int i=0; i<pt.length; i++) {
 	            	System.out.println("True or False : " + pt[i].getPlayer().getName().equals(whoHit.getName()) + " && " + pt[i].getType().equals("Hunter"));
 	            	if (pt[i].getPlayer().getName().equals(whoHit.getName()) && pt[i].getType().equals("Hunter")) {
 	            		//Won the round
+	            		setRound_started(false);
 	            		switch (i) {
 							case 0:
 			            		pt[0].setType("Hunted");
@@ -66,11 +69,13 @@ public class Listeners implements Listener{
 	            			Bukkit.getScheduler().runTaskLater(plugin, ()->{
 								Location spawn = whoHit.getWorld().getSpawnLocation();
 		            			// TODO show the winner
-		            			for (int p =0; p<pt.length; p++) {
+								for (int p =0; p<pt.length; p++) {
 		            				pt[p].getPlayer().teleport(spawn);
+		            				pt[p] = null;
 		            			}
-		            			pt = null;
 		            			setGame_started(false);
+		            			setP1_rounds(0);
+		            			setP2_rounds(0);
 							}, 200);	   
 	            			
 	            		}
@@ -78,13 +83,17 @@ public class Listeners implements Listener{
 	            }
 	        }
 		}
+		else {
+			event.setCancelled(true);
+		}
     }
 	//Check who died to give the round to his opponent
 	@EventHandler
 	public void onDeath(PlayerDeathEvent event) {
-		if(game_started) {
+		if(isGame_started() && isRound_started()) {
 			if (event.getEntity() instanceof Player) {
 				Player killed = event.getEntity();
+				setRound_started(false);
 				for (int i=0; i<pt.length; i++) {
 					if (pt[i].getPlayer().getName().equals(killed.getName())) {
 						switch (i) {
@@ -123,9 +132,11 @@ public class Listeners implements Listener{
 		            			// TODO show the winner
 		            			for (int p =0; p<pt.length; p++) {
 		            				pt[p].getPlayer().teleport(spawn);
+		            				pt[p] = null;
 		            			}
-		            			pt = null;
 		            			setGame_started(false);
+		            			setP1_rounds(0);
+		            			setP2_rounds(0);
 							}, 200);	            			
 	            		}
 					}
@@ -139,36 +150,29 @@ public class Listeners implements Listener{
 		System.out.println("Players: " + TagMiniGamePlugin.players_size);
 		int x = getRandom(-10000, 10000);
 		int z = getRandom(-10000, 10000);
-		int y = getRandom(80, 90);
-		Location l = new Location(world, x, y, z);
-		world.getChunkAt(l).load();
-		for (Player player : players) {
-			int height = y;
-			while(true) {
-				if (world.getBlockAt(new Location(world, x, height, z)).getType().isAir()) {
-					if (!world.getBlockAt(new Location(world, x, (height-1), z)).getType().isAir()) {
-						player.teleport(l);	
-						break;
-					}
-					else {
-						height--;
-					}
-				}
-				else {
-					height++;
-				}
-			}
-			player.getInventory().clear();
-			player.getInventory().addItem(new ItemStack(Material.DIAMOND_AXE));
-			player.getInventory().addItem(new ItemStack(Material.DIAMOND_SHOVEL));
-			player.getInventory().addItem(new ItemStack(Material.DIAMOND_PICKAXE));
-			player.getInventory().addItem(new ItemStack(Material.COBBLESTONE, 20));				
-			l.setX(x+50);
-			l.setZ(z+50);
-		}
-		
 		int x1 = x+70;
 		int z1 = z+70;
+		for (Player player : players) {
+			int y = player.getWorld().getHighestBlockAt(x, z).getY();
+			System.out.println("Y = " + y);
+			Location l = new Location(world, x, y, z);
+			world.getChunkAt(l).load();
+			player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+			player.setFoodLevel(20);
+			if (world.getChunkAt(l).isLoaded()) {
+				Bukkit.getScheduler().runTaskLater(plugin, ()->{
+					player.teleport(l);	
+					player.getInventory().clear();
+					player.getInventory().addItem(new ItemStack(Material.DIAMOND_AXE));
+					player.getInventory().addItem(new ItemStack(Material.DIAMOND_SHOVEL));
+					player.getInventory().addItem(new ItemStack(Material.DIAMOND_PICKAXE));
+					player.getInventory().addItem(new ItemStack(Material.COBBLESTONE, 20));
+					setRound_started(true);
+				}, 60);	 
+				x+=50;
+				z+=50;
+			}
+		}
 
 		for (int i = z1; i>(z1-100); i--) {
 			for (int j = 0; j<150; j++) {
@@ -217,11 +221,11 @@ public class Listeners implements Listener{
 			switch (i) {
 				case 0:
 					pt[i] = new PlayerType(p, "Hunter", true);
-					System.out.println(pt[i].getPlayer().getName() + "einai" + pt[i].getType());
+					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
 					break;
 				case 1:
 					pt[i] = new PlayerType(p, "Hunted", true);
-					System.out.println(pt[i].getPlayer().getName() + "einai" + pt[i].getType());
+					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
 					break;
 				default:
 					System.out.println("Οι παίκτες συμπληρώθηκαν");
@@ -230,7 +234,7 @@ public class Listeners implements Listener{
 			i++;
 		}
 	}
-
+	
 	public boolean isGame_started() {
 		return game_started;
 	}
@@ -253,6 +257,12 @@ public class Listeners implements Listener{
 
 	public void setP2_rounds(int p2_rounds) {
 		this.p2_rounds = p2_rounds;
+	}
+	public boolean isRound_started() {
+		return round_started;
+	}
+	public void setRound_started(boolean round_started) {
+		this.round_started = round_started;
 	}
 
 }
