@@ -50,7 +50,7 @@ public class Listeners implements Listener{
 	            		switch (i) {
 							case 0:
 			            		pt[0].setType("Hunted");
-			            		pt[1].setType("Hunter");
+			            		pt[1].setType("Hunter");			        
 								setP1_rounds(getP1_rounds() + 1);
 								break;
 							case 1:
@@ -59,17 +59,29 @@ public class Listeners implements Listener{
 								setP2_rounds(getP2_rounds() + 1);
 							default:
 								break;
-						}
+						}	            		
 	            		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
 						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
+		            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
+							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
+							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
 							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
 	            			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(whoHit.getWorld()), 200);
 	            		}
 	            		else {
+	            			// TODO show the winner
+							if (getP1_rounds() == 2) {
+								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
+							}
+							else {
+								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
+							}
 	            			Bukkit.getScheduler().runTaskLater(plugin, ()->{
-								Location spawn = whoHit.getWorld().getSpawnLocation();
-		            			// TODO show the winner
+								Location spawn = whoHit.getWorld().getSpawnLocation();		            			
 								for (int p =0; p<pt.length; p++) {
+									pt[p].getPlayer().setHealth(pt[p].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+		            				pt[p].getPlayer().setFoodLevel(20);
 		            				pt[p].getPlayer().teleport(spawn);
 		            				pt[p] = null;
 		            			}
@@ -123,14 +135,26 @@ public class Listeners implements Listener{
 						}
 		        		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
 						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
+		            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
+							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
+							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
 							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
 		        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(killed.getWorld()), 200);
 		        		}
 						else {
+							// TODO show the winner
+							if (getP1_rounds() == 2) {
+								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
+							}
+							else {
+								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
+							}
 							Bukkit.getScheduler().runTaskLater(plugin, ()->{
-								Location spawn = killed.getWorld().getSpawnLocation();
-		            			// TODO show the winner
+								Location spawn = killed.getWorld().getSpawnLocation();		            			
 		            			for (int p =0; p<pt.length; p++) {
+		            				pt[p].getPlayer().setHealth(pt[p].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+		            				pt[p].getPlayer().setFoodLevel(20);
 		            				pt[p].getPlayer().teleport(spawn);
 		            				pt[p] = null;
 		            			}
@@ -147,7 +171,6 @@ public class Listeners implements Listener{
 	
 	public void startGame(World world){
 		Collection<? extends Player> players = plugin.getServer().getOnlinePlayers();
-		System.out.println("Players: " + TagMiniGamePlugin.players_size);
 		int x = getRandom(-10000, 10000);
 		int z = getRandom(-10000, 10000);
 		int x1 = x+70;
@@ -222,10 +245,12 @@ public class Listeners implements Listener{
 				case 0:
 					pt[i] = new PlayerType(p, "Hunter", true);
 					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
+					plugin.getServer().broadcastMessage(pt[i].getPlayer().getName() + " - " + pt[i].getType());
 					break;
 				case 1:
 					pt[i] = new PlayerType(p, "Hunted", true);
 					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
+					plugin.getServer().broadcastMessage(pt[i].getPlayer().getName() + " - " + pt[i].getType());
 					break;
 				default:
 					System.out.println("Οι παίκτες συμπληρώθηκαν");
