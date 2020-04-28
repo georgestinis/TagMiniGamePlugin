@@ -30,14 +30,17 @@ public class Listeners implements Listener{
 	private PlayerType pt[] = new PlayerType[2];
 	private int p1_rounds = 0, p2_rounds = 0, time;
 	protected BukkitTask task;
+	private Collection<? extends Player> players;
+	private World world;
 		
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		TagMiniGamePlugin.players_size = plugin.getServer().getOnlinePlayers().size();
 		System.out.println("Players: " + TagMiniGamePlugin.players_size);
-		World world = event.getPlayer().getWorld();
+		world = event.getPlayer().getWorld();
 		if(TagMiniGamePlugin.players_size == 2) {
-			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(world), 200);
+			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
+			players = plugin.getServer().getOnlinePlayers();
 		}
 	}
 	//Check if the hunter tagged the hunted and end the game
@@ -65,38 +68,8 @@ public class Listeners implements Listener{
 							default:
 								break;
 						}	            		
-	            		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
-						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
-							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
-		            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
-							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
-							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
-							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
-							stopTimer();
-	            			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(whoHit.getWorld()), 200);
-	            		}
-	            		else {
-	            			// TODO show the winner
-							if (getP1_rounds() == 2) {
-								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
-							}
-							else {
-								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
-							}
-	            			Bukkit.getScheduler().runTaskLater(plugin, ()->{
-								Location spawn = whoHit.getWorld().getSpawnLocation();		            			
-								for (int p =0; p<pt.length; p++) {
-									pt[p].getPlayer().setHealth(pt[p].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
-		            				pt[p].getPlayer().setFoodLevel(20);
-		            				pt[p].getPlayer().teleport(spawn);
-		            				pt[p] = null;
-		            			}
-		            			setGame_started(false);
-		            			setP1_rounds(0);
-		            			setP2_rounds(0);
-							}, 200);	   
-	            			
-	            		}
+	            		nextRound();
+						break;
 	            	}
 	            }
 	        }
@@ -140,51 +113,21 @@ public class Listeners implements Listener{
 							default:
 								break;
 						}
-		        		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
-						if (getP1_rounds() < 2 && getP2_rounds() < 2) {
-							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
-		            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
-							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
-							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
-							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());							
-		        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(killed.getWorld()), 200);
-		        		}
-						else {
-							// TODO show the winner
-							if (getP1_rounds() == 2) {
-								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
-							}
-							else {
-								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
-							}
-							Bukkit.getScheduler().runTaskLater(plugin, ()->{
-								Location spawn = killed.getWorld().getSpawnLocation();		            			
-		            			for (int p =0; p<pt.length; p++) {
-		            				pt[p].getPlayer().setHealth(pt[p].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
-		            				pt[p].getPlayer().setFoodLevel(20);
-		            				pt[p].getPlayer().teleport(spawn);
-		            				pt[p] = null;
-		            			}
-		            			setGame_started(false);
-		            			setP1_rounds(0);
-		            			setP2_rounds(0);
-							}, 200);	            			
-	            		}
+		        		nextRound();
+						break;
 					}
 				}
 			}
 		}
 	}
 	
-	public void startGame(World world){
-		Collection<? extends Player> players = plugin.getServer().getOnlinePlayers();
+	public void startGame(){
 		int x = getRandom(-10000, 10000);
 		int z = getRandom(-10000, 10000);
 		int x1 = x+70;
 		int z1 = z+70;
 		for (Player player : players) {
-			int y = player.getWorld().getHighestBlockAt(x, z).getY();
-			System.out.println("Y = " + y);
+			int y = world.getHighestBlockAt(x, z).getY();
 			Location l = new Location(world, x, y, z);
 			world.getChunkAt(l).load();
 			player.setHealth(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
@@ -204,35 +147,39 @@ public class Listeners implements Listener{
 			}
 		}
 		
-		setTimer(60);
+		setTimer(120);
 		Bukkit.getScheduler().runTaskLater(plugin, ()->	startTimer(), 60);	 
-		
+		Location l1;
 		for (int i = z1; i>(z1-100); i--) {
 			for (int j = 0; j<150; j++) {
-				if (world.getBlockAt(new Location(world, x1, j, i)).getType().isAir() || 
-					world.getBlockAt(new Location(world, x1, j, i)).getType()==Material.WATER || 
-					world.getBlockAt(new Location(world, x1, j, i)).getType()==Material.LAVA) {
-					world.getBlockAt(new Location(world, x1, j, i)).setType(Material.GLASS);
+				l1 = new Location(world, x1, j, i);
+				if (world.getBlockAt(l1).getType().isAir() || 
+					world.getBlockAt(l1).getType()==Material.WATER || 
+					world.getBlockAt(l1).getType()==Material.LAVA) {
+					world.getBlockAt(l1).setType(Material.GLASS);
 				}
-				if (world.getBlockAt(new Location(world, (x1-100), j, i)).getType().isAir() || 
-					world.getBlockAt(new Location(world, (x1-100), j, i)).getType()==Material.WATER || 
-					world.getBlockAt(new Location(world, (x1-100), j, i)).getType()==Material.LAVA) {
-					world.getBlockAt(new Location(world, (x1-100), j, i)).setType(Material.GLASS);
+				l1 = new Location(world, (x1-100), j, i);
+				if (world.getBlockAt(l1).getType().isAir() || 
+					world.getBlockAt(l1).getType()==Material.WATER || 
+					world.getBlockAt(l1).getType()==Material.LAVA) {
+					world.getBlockAt(l1).setType(Material.GLASS);
 				}					
 			}
 		}
 		
 		for (int i = x1; i>(x1-100); i--) {
 			for (int j = 0; j<150; j++) {
-				if (world.getBlockAt(new Location(world, i, j, z1)).getType().isAir() || 
-					world.getBlockAt(new Location(world, i, j, z1)).getType()==Material.WATER || 
-					world.getBlockAt(new Location(world, i, j, z1)).getType()==Material.LAVA) {
-					world.getBlockAt(new Location(world, i, j, z1)).setType(Material.GLASS);
+				l1 = new Location(world, i, j, z1);
+				if (world.getBlockAt(l1).getType().isAir() || 
+					world.getBlockAt(l1).getType()==Material.WATER || 
+					world.getBlockAt(l1).getType()==Material.LAVA) {
+					world.getBlockAt(l1).setType(Material.GLASS);
 				}
-				if (world.getBlockAt(new Location(world, i, j, (z1-100))).getType().isAir() || 
-					world.getBlockAt(new Location(world, i, j, (z1-100))).getType()==Material.WATER || 
-					world.getBlockAt(new Location(world, i, j, (z1-100))).getType()==Material.LAVA) {
-					world.getBlockAt(new Location(world, i, j, (z1-100))).setType(Material.GLASS);
+				l1 = new Location(world, i, j, (z1-100));
+				if (world.getBlockAt(l1).getType().isAir() || 
+					world.getBlockAt(l1).getType()==Material.WATER || 
+					world.getBlockAt(l1).getType()==Material.LAVA) {
+					world.getBlockAt(l1).setType(Material.GLASS);
 				}
 			}
 		}
@@ -243,7 +190,6 @@ public class Listeners implements Listener{
 	
 	public void startTimer() {
 		task = new BukkitRunnable() {
-
 			@Override
 			public void run() {
 				if (time == 0) {
@@ -265,55 +211,60 @@ public class Listeners implements Listener{
 								default:
 									break;
 							}	
-							//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
-							if (getP1_rounds() < 2 && getP2_rounds() < 2) {
-								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
-			            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
-								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
-								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
-								System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
-			        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(pt[0].getPlayer().getWorld()), 200);
-			        		}
-							else {
-								// TODO show the winner
-								if (getP1_rounds() == 2) {
-									plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
-								}
-								else {
-									plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
-								}
-								Bukkit.getScheduler().runTaskLater(plugin, ()->{
-									Location spawn = pt[0].getPlayer().getWorld().getSpawnLocation();		            			
-			            			for (int pl =0; pl<pt.length; pl++) {
-			            				pt[pl].getPlayer().setHealth(pt[pl].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
-			            				pt[pl].getPlayer().setFoodLevel(20);
-			            				pt[pl].getPlayer().teleport(spawn);
-			            				pt[pl] = null;
-			            			}
-			            			setGame_started(false);
-			            			setP1_rounds(0);
-			            			setP2_rounds(0);
-								}, 200);	            			
-		            		}
+							nextRound();
 							return;
 						}
 					}
 				}
-				else if (time == 30 || time == 15) {
-					Bukkit.broadcastMessage(ChatColor.RED + "Timer remaining " + time + " seconds");
+				else if (time == 30 || time == 15 || time == 60) {
+					Bukkit.broadcastMessage(ChatColor.RED + "Time remaining " + time + " seconds");
 				}
 				else if ( time <= 5 && time > 0) {
 					Bukkit.broadcastMessage(ChatColor.RED + "Round ends in " + time + " seconds");
 				}
 				time--;
-			}
-			
+			}			
 		}.runTaskTimer(plugin, 0L, 20L);
 	}
 	
 	public void stopTimer() {
 		task.cancel();		
     }
+	
+	public void nextRound() {
+		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
+		if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+			plugin.getServer().broadcastMessage(ChatColor.BOLD + pt[0].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP1_rounds());
+    		plugin.getServer().broadcastMessage(ChatColor.BOLD + pt[1].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP2_rounds());
+			plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[0].getPlayer().getName() + 
+												ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[0].getType());
+			plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[1].getPlayer().getName() + 
+												ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[1].getType());
+			System.out.println("P1 : " + getP1_rounds() + " -- P2:" + getP2_rounds());
+			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
+		}
+		else {
+			// show the winner
+			if (getP1_rounds() == 2) {
+				plugin.getServer().broadcastMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[0].getPlayer().getName() + " - Is the winner");
+			}
+			else {
+				plugin.getServer().broadcastMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[1].getPlayer().getName() + " - Is the winner");
+			}
+			Bukkit.getScheduler().runTaskLater(plugin, ()->{
+				Location spawn = world.getSpawnLocation();		            			
+				for (int p =0; p<pt.length; p++) {
+					pt[p].getPlayer().setHealth(pt[p].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+    				pt[p].getPlayer().setFoodLevel(20);
+    				pt[p].getPlayer().teleport(spawn);
+    				pt[p] = null;
+    			}
+    			setGame_started(false);
+    			setP1_rounds(0);
+    			setP2_rounds(0);
+			}, 200);	   			
+		}
+	}
 	
 	public int getRandom(int lowest, int highest) {
         Random random = new Random();
@@ -329,12 +280,14 @@ public class Listeners implements Listener{
 				case 0:
 					pt[i] = new PlayerType(p, "Hunter", true);
 					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
-					plugin.getServer().broadcastMessage(pt[i].getPlayer().getName() + " - " + pt[i].getType());
+					plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[i].getPlayer().getName() + 
+														ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[i].getType());
 					break;
 				case 1:
 					pt[i] = new PlayerType(p, "Hunted", true);
 					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
-					plugin.getServer().broadcastMessage(pt[i].getPlayer().getName() + " - " + pt[i].getType());
+					plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[i].getPlayer().getName() + 
+														ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[i].getType());
 					break;
 				default:
 					System.out.println("Οι παίκτες συμπληρώθηκαν");
