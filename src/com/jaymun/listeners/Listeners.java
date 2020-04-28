@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -16,6 +17,8 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import com.jaymun.TagMiniGamePlugin;
 import com.jaymun.players.PlayerType;
@@ -25,8 +28,9 @@ public class Listeners implements Listener{
 	private boolean game_started = false;
 	private boolean round_started = false; 
 	private PlayerType pt[] = new PlayerType[2];
-	private int p1_rounds = 0, p2_rounds = 0;
-	
+	private int p1_rounds = 0, p2_rounds = 0, time;
+	protected BukkitTask task;
+		
 	@EventHandler
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		TagMiniGamePlugin.players_size = plugin.getServer().getOnlinePlayers().size();
@@ -47,6 +51,7 @@ public class Listeners implements Listener{
 	            	if (pt[i].getPlayer().getName().equals(whoHit.getName()) && pt[i].getType().equals("Hunter")) {
 	            		//Won the round
 	            		setRound_started(false);
+	            		stopTimer();
 	            		switch (i) {
 							case 0:
 			            		pt[0].setType("Hunted");
@@ -67,6 +72,7 @@ public class Listeners implements Listener{
 							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
 							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
 							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
+							stopTimer();
 	            			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(whoHit.getWorld()), 200);
 	            		}
 	            		else {
@@ -106,6 +112,7 @@ public class Listeners implements Listener{
 			if (event.getEntity() instanceof Player) {
 				Player killed = event.getEntity();
 				setRound_started(false);
+				stopTimer();
 				for (int i=0; i<pt.length; i++) {
 					if (pt[i].getPlayer().getName().equals(killed.getName())) {
 						switch (i) {
@@ -139,7 +146,7 @@ public class Listeners implements Listener{
 		            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
 							plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
 							plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
-							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
+							System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());							
 		        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(killed.getWorld()), 200);
 		        		}
 						else {
@@ -196,7 +203,10 @@ public class Listeners implements Listener{
 				z+=50;
 			}
 		}
-
+		
+		setTimer(60);
+		Bukkit.getScheduler().runTaskLater(plugin, ()->	startTimer(), 60);	 
+		
 		for (int i = z1; i>(z1-100); i--) {
 			for (int j = 0; j<150; j++) {
 				if (world.getBlockAt(new Location(world, x1, j, i)).getType().isAir() || 
@@ -230,6 +240,80 @@ public class Listeners implements Listener{
 			gameOn(players);
 		}
 	}
+	
+	public void startTimer() {
+		task = new BukkitRunnable() {
+
+			@Override
+			public void run() {
+				if (time == 0) {
+					Bukkit.broadcastMessage(ChatColor.RED + "Time is up!");
+					cancel();
+					setRound_started(false);
+					for (int p=0; p<pt.length; p++) {
+						if (pt[p].getType().equals("Hunted")) {
+							switch (p) {
+								case 0:
+				            		pt[0].setType("Hunter");
+				            		pt[1].setType("Hunted");			        
+									setP1_rounds(getP1_rounds() + 1);
+									break;
+								case 1:
+									pt[1].setType("Hunter");
+				            		pt[0].setType("Hunted");
+									setP2_rounds(getP2_rounds() + 1);
+								default:
+									break;
+							}	
+							//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
+							if (getP1_rounds() < 2 && getP2_rounds() < 2) {
+								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Rounds: " + getP1_rounds());
+			            		plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Rounds: " + getP2_rounds());
+								plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - " + pt[0].getType());
+								plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - " + pt[1].getType());
+								System.out.println("P1 : " + getP1_rounds() + "P2:" + getP2_rounds());
+			        			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(pt[0].getPlayer().getWorld()), 200);
+			        		}
+							else {
+								// TODO show the winner
+								if (getP1_rounds() == 2) {
+									plugin.getServer().broadcastMessage(pt[0].getPlayer().getName() + " - Is the winner");
+								}
+								else {
+									plugin.getServer().broadcastMessage(pt[1].getPlayer().getName() + " - Is the winner");
+								}
+								Bukkit.getScheduler().runTaskLater(plugin, ()->{
+									Location spawn = pt[0].getPlayer().getWorld().getSpawnLocation();		            			
+			            			for (int pl =0; pl<pt.length; pl++) {
+			            				pt[pl].getPlayer().setHealth(pt[pl].getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+			            				pt[pl].getPlayer().setFoodLevel(20);
+			            				pt[pl].getPlayer().teleport(spawn);
+			            				pt[pl] = null;
+			            			}
+			            			setGame_started(false);
+			            			setP1_rounds(0);
+			            			setP2_rounds(0);
+								}, 200);	            			
+		            		}
+							return;
+						}
+					}
+				}
+				else if (time == 30 || time == 15) {
+					Bukkit.broadcastMessage(ChatColor.RED + "Timer remaining " + time + " seconds");
+				}
+				else if ( time <= 5 && time > 0) {
+					Bukkit.broadcastMessage(ChatColor.RED + "Round ends in " + time + " seconds");
+				}
+				time--;
+			}
+			
+		}.runTaskTimer(plugin, 0L, 20L);
+	}
+	
+	public void stopTimer() {
+		task.cancel();		
+    }
 	
 	public int getRandom(int lowest, int highest) {
         Random random = new Random();
@@ -290,4 +374,7 @@ public class Listeners implements Listener{
 		this.round_started = round_started;
 	}
 
+	public void setTimer(int amount) {
+        time = amount;
+    }
 }
