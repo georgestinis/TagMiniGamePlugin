@@ -10,10 +10,12 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -28,7 +30,7 @@ public class Listeners implements Listener{
 	private boolean round_started = false; 
 	private PlayerType pt[] = new PlayerType[2];
 	private int p1_rounds = 0, p2_rounds = 0, time;
-	protected BukkitTask task;
+	protected BukkitTask task, tracker_task;
 	private Player[] players = new Player[2];
 	private World world;
 		
@@ -45,6 +47,31 @@ public class Listeners implements Listener{
 		}
 		Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 140);
 	}
+	
+	@EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerItemHeld(PlayerItemHeldEvent event){   
+		if (isRound_started()) {
+	        tracker_task = new BukkitRunnable() {
+				@Override
+				public void run() {
+					Player p = event.getPlayer();
+			        ItemStack i = p.getInventory().getItemInMainHand();
+					if(i.getType() == Material.COMPASS){
+			        	for (PlayerType player_type : pt) {
+			        		if (player_type.getType().equals("Hunted")) {
+			                	p.sendMessage(ChatColor.GOLD + "X: " + (int)player_type.getPlayer().getLocation().getX() + " Z: " + (int)player_type.getPlayer().getLocation().getZ());
+			                	break;
+			        		}
+			        	}
+			        }
+			        else {
+			        	cancel();
+			        	event.setCancelled(true);
+			        }
+				}			
+			}.runTaskTimer(plugin, 0L, 100L);
+		}
+    }
 	
 	//Check if the hunter tagged the hunted and end the game
 	@EventHandler
@@ -142,13 +169,21 @@ public class Listeners implements Listener{
 					player.getInventory().addItem(new ItemStack(Material.DIAMOND_AXE));
 					player.getInventory().addItem(new ItemStack(Material.DIAMOND_SHOVEL));
 					player.getInventory().addItem(new ItemStack(Material.DIAMOND_PICKAXE));
-					player.getInventory().addItem(new ItemStack(Material.COBBLESTONE, 20));
+					player.getInventory().addItem(new ItemStack(Material.COBBLESTONE, 20));	
+					for (PlayerType p_type : pt) {
+						if (p_type.getType().equals("Hunter") && player.getName().equals(p_type.getPlayer().getName())) {
+							System.out.println(p_type.getPlayer().getName());
+							p_type.getPlayer().getInventory().addItem(new ItemStack(Material.COMPASS, 1));
+							break;
+						}
+					}
 					setRound_started(true);
 				}, 60);	 
 				x+=50;
 				z+=50;
 			}
-		}
+		}		
+		
 		for (Player player : players) {
 			player.sendMessage(ChatColor.RED + "Game starts in 3 seconds");
 		}
