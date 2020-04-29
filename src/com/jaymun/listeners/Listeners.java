@@ -40,7 +40,10 @@ public class Listeners implements Listener{
 	}
 	
 	public void playerJoin() {
-		Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
+		for (Player player : players) {
+			player.sendMessage(ChatColor.RED + "Game starts in 10 seconds");
+		}
+		Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 140);
 	}
 	
 	//Check if the hunter tagged the hunted and end the game
@@ -146,7 +149,9 @@ public class Listeners implements Listener{
 				z+=50;
 			}
 		}
-		
+		for (Player player : players) {
+			player.sendMessage(ChatColor.RED + "Game starts in 3 seconds");
+		}
 		setTimer(120);
 		Bukkit.getScheduler().runTaskLater(plugin, ()->	startTimer(), 60);	 
 		Location l1;
@@ -190,7 +195,9 @@ public class Listeners implements Listener{
 			@Override
 			public void run() {
 				if (time == 0) {
-					Bukkit.broadcastMessage(ChatColor.RED + "Time is up!");
+					for (Player player : players) {
+						player.sendMessage(ChatColor.RED + "Time is up!");
+					}
 					cancel();
 					setRound_started(false);
 					for (int p=0; p<pt.length; p++) {
@@ -214,10 +221,14 @@ public class Listeners implements Listener{
 					}
 				}
 				else if (time == 30 || time == 15 || time == 60) {
-					Bukkit.broadcastMessage(ChatColor.RED + "Time remaining " + time + " seconds");
+					for (Player player : players) {
+						player.sendMessage(ChatColor.RED + "Time remaining " + time + " seconds");
+					}
 				}
 				else if ( time <= 5 && time > 0) {
-					Bukkit.broadcastMessage(ChatColor.RED + "Round ends in " + time + " seconds");
+					for (Player player : players) {
+						player.sendMessage(ChatColor.RED + "Round ends in " + time + " seconds");
+					}
 				}
 				time--;
 			}			
@@ -231,22 +242,30 @@ public class Listeners implements Listener{
 	public void nextRound() {
 		//if (getP1_rounds() < 7 && getP2_rounds() < 7) {
 		if (getP1_rounds() < 2 && getP2_rounds() < 2) {
-			plugin.getServer().broadcastMessage(ChatColor.BOLD + pt[0].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP1_rounds());
-    		plugin.getServer().broadcastMessage(ChatColor.BOLD + pt[1].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP2_rounds());
-			plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[0].getPlayer().getName() + 
-												ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[0].getType());
-			plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[1].getPlayer().getName() + 
-												ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[1].getType());
+			for (Player player : players) {
+				player.sendMessage(ChatColor.BOLD + pt[0].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP1_rounds());
+				player.sendMessage(ChatColor.BOLD + pt[1].getPlayer().getName() + " - " + ChatColor.GOLD + "Rounds: " + getP2_rounds());
+				player.sendMessage(ChatColor.GOLD + pt[0].getPlayer().getName() + ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[0].getType());
+				player.sendMessage(ChatColor.GOLD + pt[1].getPlayer().getName() + ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[1].getType());
+				player.sendMessage(ChatColor.RED + "Next round in 10 seconds");
+			}			
 			System.out.println("P1 : " + getP1_rounds() + " -- P2:" + getP2_rounds());
-			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
+			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 140);
 		}
 		else {
 			// show the winner
 			if (getP1_rounds() == 2) {
-				plugin.getServer().broadcastMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[0].getPlayer().getName() + " - Is the winner");
+				for (Player player : players) {
+					player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[0].getPlayer().getName() + " - Is the winner");					
+				}	
 			}
 			else {
-				plugin.getServer().broadcastMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[1].getPlayer().getName() + " - Is the winner");
+				for (Player player : players) {
+					player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + pt[1].getPlayer().getName() + " - Is the winner");					
+				}
+			}
+			for (Player player : players) {
+				player.sendMessage(ChatColor.RED + "Teleporting back to spawn in 5 seconds");					
 			}
 			Bukkit.getScheduler().runTaskLater(plugin, ()->{
 				Location spawn = world.getSpawnLocation();		            			
@@ -260,7 +279,7 @@ public class Listeners implements Listener{
     			setP2_rounds(0);
     			JoinGameCommand.P_COUNT = 0;
     			HandlerList.unregisterAll(TagMiniGamePlugin.listener);
-			}, 200);	   			
+			}, 100);	   			
 		}
 	}
 	
@@ -276,21 +295,21 @@ public class Listeners implements Listener{
 			switch (i) {
 				case 0:
 					pt[i] = new PlayerType(p, "Hunter", true);
-					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
-					plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[i].getPlayer().getName() + 
-														ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[i].getType());
 					break;
 				case 1:
 					pt[i] = new PlayerType(p, "Hunted", true);
-					System.out.println(pt[i].getPlayer().getName() + " einai " + pt[i].getType());
-					plugin.getServer().broadcastMessage(ChatColor.GOLD + pt[i].getPlayer().getName() + 
-														ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[i].getType());
 					break;
 				default:
 					System.out.println("Οι παίκτες συμπληρώθηκαν");
 					break loop;
-			}			
-			i++;
+			}
+			i++;			
+		}		
+		for (Player p : players) {
+			p.sendMessage(ChatColor.GOLD + pt[0].getPlayer().getName() + 
+					ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[0].getType());
+			p.sendMessage(ChatColor.GOLD + pt[1].getPlayer().getName() + 
+					ChatColor.WHITE + "" + ChatColor.BOLD + " - " + pt[1].getType());
 		}
 	}
 

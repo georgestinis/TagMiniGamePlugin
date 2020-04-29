@@ -18,10 +18,15 @@ public class JoinGameCommand implements CommandExecutor{
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		if (sender instanceof Player) {
 			if (P_COUNT < 2) {
-				player[P_COUNT] = (Player) sender;
+				player[P_COUNT] = (Player) sender;				
 			}
 			P_COUNT++;
-			if (P_COUNT == 2) {
+			if (P_COUNT < 2) {
+				player[P_COUNT-1].sendMessage("Waiting for another player - " + P_COUNT + "/2");
+			}
+			else if (P_COUNT == 2) {
+				player[0].sendMessage("Game starting soon - " + P_COUNT + "/2");
+				player[1].sendMessage("Game starting soon - " + P_COUNT + "/2");
 				TagMiniGamePlugin.listener = new Listeners(player);
 				plugin.getServer().getPluginManager().registerEvents(TagMiniGamePlugin.listener, plugin);
 			}
