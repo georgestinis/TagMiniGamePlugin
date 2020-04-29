@@ -1,6 +1,5 @@
 package com.jaymun.listeners;
 
-import java.util.Collection;
 import java.util.Random;
 
 import org.bukkit.Bukkit;
@@ -11,42 +10,43 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
 import com.jaymun.TagMiniGamePlugin;
+import com.jaymun.Commands.JoinGameCommand;
 import com.jaymun.players.PlayerType;
 
 public class Listeners implements Listener{
 	private Plugin plugin = TagMiniGamePlugin.getPlugin(TagMiniGamePlugin.class);
-	private boolean game_started = false;
 	private boolean round_started = false; 
 	private PlayerType pt[] = new PlayerType[2];
 	private int p1_rounds = 0, p2_rounds = 0, time;
 	protected BukkitTask task;
-	private Collection<? extends Player> players;
+	private Player[] players = new Player[2];
 	private World world;
 		
-	@EventHandler
-	public void onPlayerJoin(PlayerJoinEvent event) {
-		TagMiniGamePlugin.players_size = plugin.getServer().getOnlinePlayers().size();
-		System.out.println("Players: " + TagMiniGamePlugin.players_size);
-		world = event.getPlayer().getWorld();
-		if(TagMiniGamePlugin.players_size == 2) {
-			Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
-			players = plugin.getServer().getOnlinePlayers();
-		}
+	public Listeners(Player[] player) {
+		this.players = player;
+		world = players[0].getPlayer().getWorld();
+		gameOn(players);
+		playerJoin();
 	}
+	
+	public void playerJoin() {
+		Bukkit.getScheduler().runTaskLater(plugin, ()-> startGame(), 200);
+	}
+	
 	//Check if the hunter tagged the hunted and end the game
 	@EventHandler
     public void onHit(EntityDamageByEntityEvent event) {
-		if(isGame_started() && isRound_started()) {
+		if(isRound_started()) {
 	        if (event.getEntity() instanceof Player && event.getDamager() instanceof Player) {
 	            Player whoHit = (Player) event.getDamager();
 	            for (int i=0; i<pt.length; i++) {
@@ -81,7 +81,7 @@ public class Listeners implements Listener{
 	//Check who died to give the round to his opponent
 	@EventHandler
 	public void onDeath(PlayerDeathEvent event) {
-		if(isGame_started() && isRound_started()) {
+		if(isRound_started()) {
 			if (event.getEntity() instanceof Player) {
 				Player killed = event.getEntity();
 				setRound_started(false);
@@ -183,9 +183,6 @@ public class Listeners implements Listener{
 				}
 			}
 		}
-		if (!isGame_started()) {
-			gameOn(players);
-		}
 	}
 	
 	public void startTimer() {
@@ -259,9 +256,10 @@ public class Listeners implements Listener{
     				pt[p].getPlayer().teleport(spawn);
     				pt[p] = null;
     			}
-    			setGame_started(false);
     			setP1_rounds(0);
     			setP2_rounds(0);
+    			JoinGameCommand.P_COUNT = 0;
+    			HandlerList.unregisterAll(TagMiniGamePlugin.listener);
 			}, 200);	   			
 		}
 	}
@@ -271,8 +269,7 @@ public class Listeners implements Listener{
         return random.nextInt((highest - lowest) + 1) + lowest;  //99
 	}
 	
-	public void gameOn(Collection<? extends Player> players) {
-		setGame_started(true);
+	public void gameOn(Player players[]) {
 		int i = 0;
 		loop:
 		for (Player p : players) {
@@ -295,14 +292,6 @@ public class Listeners implements Listener{
 			}			
 			i++;
 		}
-	}
-	
-	public boolean isGame_started() {
-		return game_started;
-	}
-
-	public void setGame_started(boolean game_started) {
-		this.game_started = game_started;
 	}
 
 	public int getP1_rounds() {

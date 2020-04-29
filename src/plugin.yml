@@ -4,3 +4,7 @@ api-version: 1.15
 author: Jaymun
 main: com.jaymun.TagMiniGamePlugin
 description: A mini game
+
+commands:
+    join_minigame:
+        usage: /<command>
