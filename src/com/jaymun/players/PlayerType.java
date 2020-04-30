@@ -2,6 +2,7 @@ package com.jaymun.players;
 
 import org.bukkit.entity.Player;
 
+// A class to choose the Hunter and the Hunted
 public class PlayerType{
 	private Player player;
 	private String type;

@@ -8,20 +8,22 @@ import com.jaymun.listeners.Listeners;
 
 public class TagMiniGamePlugin extends JavaPlugin{
 	private static TagMiniGamePlugin instance;
-	public static Listeners listener;
-	public static int players_size;
+	public static Listeners LISTENER;
+	public static int PLAYERS_SIZE;
+	
 	public TagMiniGamePlugin getInstance() {
 		return TagMiniGamePlugin.instance;
 	}
 	
 	public void setPlayers(int i) {
-		TagMiniGamePlugin.players_size = i;
+		TagMiniGamePlugin.PLAYERS_SIZE = i;
 	}
 	
 	public int getPlayers() {
-		return TagMiniGamePlugin.players_size;
+		return TagMiniGamePlugin.PLAYERS_SIZE;
 	}
 	
+	// On enable a command which starts the game is added to the commands
 	@Override
 	public void onEnable() {
 		instance = this;
@@ -34,10 +36,10 @@ public class TagMiniGamePlugin extends JavaPlugin{
 	}
 
 	public static Listeners getListener() {
-		return listener;
+		return LISTENER;
 	}
 
 	public static void setListener(Listeners listener) {
-		TagMiniGamePlugin.listener = listener;
+		TagMiniGamePlugin.LISTENER = listener;
 	}
 }
