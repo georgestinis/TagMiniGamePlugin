@@ -65,12 +65,21 @@ public class Listeners implements Listener{
 			        ItemStack i = p.getInventory().getItemInMainHand();
 			        // If it's a compass find the hunted player and get his/her coordinates and show them in hunter's chat
 					if(i.getType() == Material.COMPASS){
+						double closest = Double.MAX_VALUE;
+						Player closestp = null;					
 			        	for (PlayerType player_type : pt) {
 			        		if (player_type.getType().equals("Hunted")) {
-			                	p.sendMessage(ChatColor.GOLD + "X: " + (int)player_type.getPlayer().getLocation().getX() + " Z: " + (int)player_type.getPlayer().getLocation().getZ());
-			                	break;
+			        			double dist = player_type.getPlayer().getLocation().distance(p.getLocation());
+								if (closest == Double.MAX_VALUE || dist < closest) {
+									closest = dist;
+									closestp = player_type.getPlayer();
+								}
 			        		}
 			        	}
+						if (closestp != null) {
+							p.setCompassTarget(closestp.getLocation());	
+						}				        	
+
 			        }
 					// If it's not a compass cancel the task and the event
 			        else {
@@ -78,7 +87,7 @@ public class Listeners implements Listener{
 			        	event.setCancelled(true);
 			        }
 				}			
-			}.runTaskTimer(plugin, 0L, 100L);
+			}.runTaskTimer(plugin, 0L, 20L);
 		}
     }
 	
