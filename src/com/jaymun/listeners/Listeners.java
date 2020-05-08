@@ -63,7 +63,7 @@ public class Listeners implements Listener{
 					// Get the player and the item that he/she holds in main hand
 					Player p = event.getPlayer();
 			        ItemStack i = p.getInventory().getItemInMainHand();
-			        // If it's a compass find the hunted player and get his/her coordinates and show them in hunter's chat
+			        // If it's a compass find the hunted player and get his/her coordinates and set compass to tracker her/him
 					if(i.getType() == Material.COMPASS){
 						double closest = Double.MAX_VALUE;
 						Player closestp = null;					
